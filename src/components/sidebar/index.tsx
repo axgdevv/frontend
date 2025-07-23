@@ -1,5 +1,4 @@
 "use client";
-import { useEffect, useState } from "react";
 import SideNavigationTab from "./SideNavigationTab";
 
 import { usePathname } from "next/navigation";
@@ -12,7 +11,6 @@ import {
 } from "lucide-react";
 
 export default function Sidebar() {
-  const [isHidden, setIsHidden] = useState<boolean>();
   const pathname = usePathname();
 
   const sideNavigationTabs = [
@@ -55,8 +53,7 @@ export default function Sidebar() {
 
   return (
     <div
-      className={`bg-white left-0 top-0 bottom-0 px-2 flex-col items-center justify-between border-r border-gray-200 py-4 ${
-        isHidden ? "hidden" : "hidden md:flex"
+      className={`bg-white left-0 top-0 bottom-0 px-2 flex-col items-center justify-between border-r border-gray-200 py-4 md:flex"
       }`}
     >
       {/* <div className=""> */}

@@ -13,11 +13,32 @@ import { useState } from "react";
 
 import { executePlanCheck } from "@/api/plan-check/index";
 
+// Todo: Move to a designated interfaces directory
+// Interfaces:
+interface ProjectInfo {
+  project_name: string;
+  client_name: string;
+}
+
+interface PlanCheckItem {
+  category: string;
+  item: string;
+  description: string;
+  priority: string;
+  reference: string;
+  confidence: string;
+}
+
+interface PlanCheckResponse {
+  project_info: ProjectInfo;
+  items: PlanCheckItem[];
+}
+
 export default function PlanCheckPage() {
   const [isLoading, setIsLoading] = useState<boolean>();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
-  const [data, setData] = useState<any>();
+  const [data, setData] = useState<PlanCheckResponse>();
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
@@ -100,7 +121,7 @@ export default function PlanCheckPage() {
             <div>
               <h2 className="text-xl font-semibold mb-2">Detected Items</h2>
               {data.items && data.items.length > 0 ? (
-                data.items.map((item: any, index: number) => (
+                data.items.map((item: PlanCheckItem, index: number) => (
                   <div
                     key={index}
                     className="mb-4 p-4 border rounded-lg bg-gray-50"

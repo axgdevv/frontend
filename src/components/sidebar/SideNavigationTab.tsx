@@ -1,16 +1,21 @@
 "use client";
 import Link from "next/link";
 
-export default function SideNavigationTab(props: any) {
+// Todo: Move to a designated interfaces directory
+// Interfaces:
+interface SideNavigationTabProps {
+  isTabActive: boolean;
+  isDisabled: boolean;
+  navigateTo: string;
+  label: string;
+  icon: React.ReactNode;
+}
+
+export default function SideNavigationTab(props: SideNavigationTabProps) {
   const isDisabled = props.isDisabled;
 
   const content = (
     <div
-      onClick={
-        isDisabled
-          ? undefined
-          : () => props?.callbackFunction && props?.callbackFunction()
-      }
       className={`rounded-xl py-2 px-4 flex items-center space-x-4 z-100
         ${
           isDisabled

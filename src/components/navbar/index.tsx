@@ -1,8 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
 export default function Navbar() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const menuRef = useRef(null);
   return (
     <div
       className={`bg-white border-b border-gray-200 items-center justify-between flex px-8 py-2`}
