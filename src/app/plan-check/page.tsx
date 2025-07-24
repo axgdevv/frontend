@@ -9,9 +9,10 @@ import { Label } from "@radix-ui/react-label";
 import { Loader2Icon } from "lucide-react";
 
 // react:
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { executePlanCheck } from "@/api/plan-check/index";
+import { checkConnection } from "@/api/index";
 
 // Todo: Move to a designated interfaces directory
 // Interfaces:
@@ -64,6 +65,45 @@ export default function PlanCheckPage() {
       setIsLoading(false); // Ensure loading state is reset on error
     }
   };
+
+  // Server connection states
+  const [serverReady, setServerReady] = useState<boolean>(false);
+
+  const checkConnectionHandler = async () => {
+    const response: boolean = await checkConnection();
+    if (!response) {
+      console.log("Couldn't connect to server", response);
+    }
+    setServerReady(response);
+  };
+
+  // Connection checking effect
+  useEffect(() => {
+    checkConnectionHandler();
+
+    // Set up polling interval
+    const intervalId = setInterval(async () => {
+      if (!serverReady) {
+        await checkConnectionHandler();
+      }
+    }, 5000); // Polling every 5 seconds
+
+    return () => clearInterval(intervalId);
+  }, [serverReady]);
+
+  // Show loading screen if server is not ready
+  if (!serverReady) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center flex-col space-y-4">
+        <div className="flex justify-center flex-col items-center space-y-4">
+          <Loader2Icon className="animate-spin h-8 w-8" />
+          <p className="font-medium text-black">
+            Connecting to server, please wait...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
