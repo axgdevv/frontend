@@ -70,10 +70,6 @@ export default function Sidebar() {
         ))}
       </div>
       {/* </div> */}
-
-      <p className="text-gray-400 py-8">
-        v<span className="text-sm"> 1.0</span>
-      </p>
     </div>
   );
 }
