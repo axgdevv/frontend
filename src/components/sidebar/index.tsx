@@ -26,7 +26,7 @@ export default function Sidebar() {
       navigateTo: "/checklist",
       icon: <ListCheck strokeWidth={1} />,
       isTabActive: pathname.includes("/checklist"),
-      isDisabled: true,
+      isDisabled: false,
     },
     {
       label: "Plan Check",
@@ -47,7 +47,7 @@ export default function Sidebar() {
       navigateTo: "/upload",
       icon: <CloudUpload strokeWidth={1} />,
       isTabActive: pathname.includes("/upload"),
-      isDisabled: true,
+      isDisabled: false,
     },
   ];
 
