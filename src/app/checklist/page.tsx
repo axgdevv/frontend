@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 
 import { generateChecklist } from "@/api/plan-check/index";
 import { checkConnection } from "@/api/index";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 // Todo: Move to a designated interfaces directory
 // Interfaces:
@@ -96,38 +97,40 @@ export default function PlanCheckPage() {
   }
 
   return (
-    <div className="h-screen w-full flex items-center justify-center">
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="documents">Generate Checklist</Label>
-          <Input
-            className="cursor-pointer"
-            onChange={handleFileChange}
-            multiple
-            id="documents"
-            type="file"
-          />
-        </div>
-        {selectedFiles.length > 0 && (
-          <ul>
-            {selectedFiles.map((file, index) => (
-              <li key={index}>{file.name}</li>
-            ))}
-          </ul>
-        )}
-        <Button
-          disabled={!selectedFiles.length || isLoading}
-          variant="outline"
-          className="rounded-md px-8 cursor-pointer"
-          onClick={uploadDocumentsHandler}
-        >
-          {isLoading ? (
-            <Loader2Icon className="animate-spin" />
-          ) : (
-            <p>Upload Files</p>
+    <ProtectedRoute>
+      <div className="h-screen w-full flex items-center justify-center">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="documents">Generate Checklist</Label>
+            <Input
+              className="cursor-pointer"
+              onChange={handleFileChange}
+              multiple
+              id="documents"
+              type="file"
+            />
+          </div>
+          {selectedFiles.length > 0 && (
+            <ul>
+              {selectedFiles.map((file, index) => (
+                <li key={index}>{file.name}</li>
+              ))}
+            </ul>
           )}
-        </Button>
+          <Button
+            disabled={!selectedFiles.length || isLoading}
+            variant="outline"
+            className="rounded-md px-8 cursor-pointer"
+            onClick={uploadDocumentsHandler}
+          >
+            {isLoading ? (
+              <Loader2Icon className="animate-spin" />
+            ) : (
+              <p>Upload Files</p>
+            )}
+          </Button>
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }
