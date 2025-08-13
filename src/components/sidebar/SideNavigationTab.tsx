@@ -16,7 +16,7 @@ export default function SideNavigationTab(props: SideNavigationTabProps) {
 
   const content = (
     <div
-      className={`rounded-xl py-2 px-4 flex items-center space-x-4 z-100
+      className={`rounded-xl py-2 px-4 flex items-center space-x-4 z-50
         ${
           isDisabled
             ? "opacity-50 cursor-not-allowed"

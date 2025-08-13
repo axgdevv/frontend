@@ -1,134 +1,90 @@
 "use client";
 
-// Shadcn:
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@radix-ui/react-label";
-
-// lucide-react:
-import { Loader2Icon } from "lucide-react";
-
-// react:
-import { useEffect, useState } from "react";
-
-import { generateChecklist } from "@/api/plan-check/index";
-import { checkConnection } from "@/api/index";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { v4 as uuidv4 } from "uuid";
+import { fetchChecklistsByUser } from "@/api/checklist/index";
+import { useAuth } from "@/contexts/AuthContext";
+import { Card, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
-// Todo: Move to a designated interfaces directory
-// Interfaces:
 interface ProjectInfo {
   project_name: string;
   client_name: string;
 }
 
-interface PlanCheckItem {
+interface ChecklistItem {
   category: string;
   item: string;
   description: string;
-  priority: string;
-  reference: string;
-  confidence: string;
+  priority: "High" | "Medium" | "Low";
 }
 
-interface PlanCheckResponse {
+interface ChecklistResponse {
+  _id: string;
+  user_id: string;
   project_info: ProjectInfo;
-  items: PlanCheckItem[];
+  checklist_items: ChecklistItem[];
+  summary_of_key_concerns: string;
+  suggested_next_steps: string[];
+  // other fields omitted for brevity
 }
 
-export default function PlanCheckPage() {
-  const [isLoading, setIsLoading] = useState<boolean>();
-  const [activeTab, setActiveTab] = useState<number>(0);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [data, setData] = useState<PlanCheckResponse>();
+export default function ChecklistPage() {
+  const [checklists, setChecklists] = useState<Array<ChecklistResponse>>([]);
+  const { user } = useAuth();
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files) {
-      setSelectedFiles(Array.from(files));
+  const fetchChecklistsHandler = async () => {
+    if (!user?.uid) {
+      console.log("User not ready yet");
+      return;
     }
-  };
-
-  const uploadDocumentsHandler = async () => {
-    setIsLoading(true);
-    const formData = new FormData();
-    selectedFiles.forEach((file) => {
-      formData.append("file", file);
-    });
-
     try {
-      const response = await generateChecklist(formData);
-      setData(response);
-    } catch (error) {
-      console.error("Upload failed:", error);
-    } finally {
-      setIsLoading(false);
+      const userChecklistsResponse = await fetchChecklistsByUser(user.uid);
+      setChecklists(userChecklistsResponse);
+    } catch (err) {
+      console.error("Failed to fetch checklists", err);
     }
-  };
-
-  // Server connection states
-  const [serverReady, setServerReady] = useState<boolean>(false);
-
-  const checkConnectionHandler = async () => {
-    const response: boolean = await checkConnection();
-    if (!response) {
-      console.log("Couldn't connect to server", response);
-    }
-    setServerReady(response);
   };
 
   useEffect(() => {
-    checkConnectionHandler();
-    const interval = setInterval(() => {
-      if (!serverReady) checkConnectionHandler();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [serverReady]);
-
-  if (!serverReady) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center flex-col space-y-4">
-        <Loader2Icon className="animate-spin h-8 w-8" />
-        <p className="text-black font-medium">
-          Connecting to server, please wait...
-        </p>
-      </div>
-    );
-  }
+    fetchChecklistsHandler();
+  }, [user]);
 
   return (
     <ProtectedRoute>
-      <div className="h-screen w-full flex items-center justify-center">
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="documents">Generate Checklist</Label>
-            <Input
-              className="cursor-pointer"
-              onChange={handleFileChange}
-              multiple
-              id="documents"
-              type="file"
-            />
-          </div>
-          {selectedFiles.length > 0 && (
-            <ul>
-              {selectedFiles.map((file, index) => (
-                <li key={index}>{file.name}</li>
-              ))}
-            </ul>
-          )}
-          <Button
-            disabled={!selectedFiles.length || isLoading}
-            variant="outline"
-            className="rounded-md px-8 cursor-pointer"
-            onClick={uploadDocumentsHandler}
-          >
-            {isLoading ? (
-              <Loader2Icon className="animate-spin" />
-            ) : (
-              <p>Upload Files</p>
-            )}
-          </Button>
+      {/* Add button */}
+      <div className="w-full h-full">
+        <div className="border-b py-4 px-4 flex justify-end">
+          <Link href={`checklist/${uuidv4()}`}>
+            <button
+              onClick={() => {}}
+              className="text-white bg-[#00332A] rounded-sm py-2 px-4 text-sm cursor-pointer"
+            >
+              New Checklist
+            </button>
+          </Link>
+        </div>
+
+        {/* All Checklist */}
+        <div className="py-8 px-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {checklists.map(({ _id, project_info }) => (
+            <Card key={_id} className="transition-shadow duration-200">
+              <CardHeader>
+                <CardTitle>{project_info.project_name}</CardTitle>
+                <p className="text-sm">{project_info.client_name}</p>
+              </CardHeader>
+
+              <CardFooter className="flex">
+                <Button className="w-full">
+                  <Link className="w-full" key={_id} href={`/checklist/${_id}`}>
+                    View
+                  </Link>
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
         </div>
       </div>
     </ProtectedRoute>
