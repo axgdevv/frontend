@@ -7,6 +7,7 @@ import {
   signOut as firebaseSignOut,
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
+import { signInWithGoogleAPI } from "@/api/auth/index";
 
 const AuthContext = createContext();
 
@@ -34,7 +35,19 @@ export function AuthProvider({ children }) {
   const signInWithGoogle = async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      return result.user;
+      const userData = {
+        firebase_uid: result.user.uid,
+        email: result.user.email,
+        full_name: result.user.displayName,
+        email_verified: result.user.emailVerified,
+        photo_url: result.user.photoURL,
+        last_sign_in_at: new Date(result.user.metadata.lastSignInTime)
+          .toISOString,
+        created_at: new Date(result.user.metadata.creationTime).toISOString,
+      };
+      const userSignin = await signInWithGoogleAPI(userData);
+
+      return userSignin;
     } catch (error) {
       console.error("Error signing in with Google:", error);
       throw error;

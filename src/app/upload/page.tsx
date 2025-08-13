@@ -37,7 +37,6 @@ interface PlanCheckResponse {
 
 export default function PlanCheckPage() {
   const [isLoading, setIsLoading] = useState<boolean>();
-  const [activeTab, setActiveTab] = useState<number>(0);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [data, setData] = useState<PlanCheckResponse>();
 
@@ -58,6 +57,8 @@ export default function PlanCheckPage() {
     try {
       const response = await ingestCityComments(formData);
       setData(response);
+      // Todo: remove this log, added to prevent build errors
+      console.log(data);
     } catch (error) {
       console.error("Upload failed:", error);
     } finally {

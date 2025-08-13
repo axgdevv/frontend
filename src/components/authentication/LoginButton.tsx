@@ -37,7 +37,10 @@ export default function LoginButton() {
   }
 
   return (
-    <Button onClick={signInWithGoogle} className="flex items-center gap-2">
+    <Button
+      onClick={signInWithGoogle}
+      className="flex items-center gap-2 hover:cursor-pointer bg-[#4285F4] hover:bg-[#4285F4] hover:brightness-90 transition-all"
+    >
       <svg className="w-4 h-4" viewBox="0 0 24 24">
         <path
           fill="currentColor"
