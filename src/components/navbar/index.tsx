@@ -6,6 +6,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import BaseMenu from "../base/BaseMenu";
+import Image from "next/image";
+import { User } from "lucide-react";
+import Link from "next/link";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -34,6 +37,15 @@ export default function Navbar() {
       }`}
     >
       <div className="flex items-center justify-center text-2xl text-[#003627] font-thin space-x-2">
+        <Link href="/dashboard">
+          <Image
+            src="/logo.png"
+            width={40}
+            height={40}
+            className="rounded-md"
+            alt="Picture of the author"
+          />
+        </Link>
         <span className="font-bold text-[#00332A]">StructCheck AI</span>
       </div>
 
@@ -44,7 +56,9 @@ export default function Navbar() {
               className="rounded-full h-8 w-8"
               src={user?.photoURL}
             />
-            <AvatarFallback>CN</AvatarFallback>
+            <AvatarFallback className="bg-gray-100">
+              <User className="w-5 h-5 text-gray-500" />
+            </AvatarFallback>
           </Avatar>
           {user?.displayName ? (
             <p className="text-sm">{user?.displayName.split(" ")[0]}</p>
