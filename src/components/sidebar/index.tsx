@@ -22,7 +22,7 @@ export default function Sidebar() {
       navigateTo: "/dashboard",
       icon: <LayoutDashboard strokeWidth={1} />,
       isTabActive: pathname.includes("/dashboard"),
-      isDisabled: true,
+      isDisabled: false,
     },
     {
       label: "Projects",
