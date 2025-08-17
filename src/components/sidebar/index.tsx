@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   ListCheck,
   NotebookPen,
+  Folders,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -24,19 +25,13 @@ export default function Sidebar() {
       isDisabled: true,
     },
     {
-      label: "Checklist",
-      navigateTo: "/checklist",
-      icon: <ListCheck strokeWidth={1} />,
-      isTabActive: pathname.includes("/checklist"),
+      label: "Projects",
+      navigateTo: "/projects",
+      icon: <Folders strokeWidth={1} />,
+      isTabActive: pathname.includes("/projects"),
       isDisabled: false,
     },
-    {
-      label: "Plan Check",
-      navigateTo: "/plan-check",
-      icon: <NotebookPen strokeWidth={1} />,
-      isTabActive: pathname.includes("/plan-check"),
-      isDisabled: false,
-    },
+
     {
       label: "Converse",
       navigateTo: "/converse",

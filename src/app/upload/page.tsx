@@ -11,7 +11,7 @@ import { Loader2Icon } from "lucide-react";
 // react:
 import { useEffect, useState } from "react";
 
-import { ingestCityComments } from "@/api/plan-check/index";
+import { ingestCityComments } from "@/api/knowledgebase/index";
 import { checkConnection } from "@/api/index";
 
 // Todo: Move to a designated interfaces directory
