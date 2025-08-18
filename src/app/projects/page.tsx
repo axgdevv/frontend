@@ -403,7 +403,7 @@ export default function ProjectsPage() {
       const half = Math.floor(showPages / 2);
 
       let start = Math.max(1, currentPage - half);
-      let end = Math.min(totalPages, start + showPages - 1);
+      const end = Math.min(totalPages, start + showPages - 1);
 
       if (end - start < showPages - 1) {
         start = Math.max(1, end - showPages + 1);

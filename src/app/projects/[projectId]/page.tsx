@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, use } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -205,7 +205,7 @@ export default function ProjectDetailPage(props: {
     try {
       const updatedProject = await updateProjectStatus({
         _id: projectId,
-        status: projectData.status,
+        status: status,
       });
       setProjectData(updatedProject); // Optimistic UI update
       globalCache.onProjectUpdated(projectId, user.uid);

@@ -6,8 +6,6 @@ import {
   CloudUpload,
   MessagesSquare,
   LayoutDashboard,
-  ListCheck,
-  NotebookPen,
   Folders,
 } from "lucide-react";
 import { useEffect, useState } from "react";

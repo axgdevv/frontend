@@ -9,7 +9,6 @@ import {
   Loader2Icon,
   Trash2,
   ArrowLeft,
-  AlertTriangle,
   CheckCircle,
   Upload,
   X,
