@@ -42,66 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-// In-memory cache with size limit for memory management
-class ProjectCache {
-  private cache = new Map<string, { data: any; timestamp: number }>();
-  private maxSize = 50; // Limit cache size for memory efficiency
-  private ttl = 5 * 60 * 1000; // 5 minutes TTL
-
-  private generateKey(
-    userId: string,
-    page: number,
-    search: string,
-    status: string
-  ): string {
-    return `${userId}-${page}-${search}-${status}`;
-  }
-
-  get(userId: string, page: number, search: string, status: string) {
-    const key = this.generateKey(userId, page, search, status);
-    const cached = this.cache.get(key);
-
-    if (cached && Date.now() - cached.timestamp < this.ttl) {
-      return cached.data;
-    }
-
-    if (cached) {
-      this.cache.delete(key);
-    }
-
-    return null;
-  }
-
-  set(userId: string, page: number, search: string, status: string, data: any) {
-    // If cache is full, remove oldest entries
-    if (this.cache.size >= this.maxSize) {
-      const oldestKey = this.cache.keys().next().value;
-      this.cache.delete(oldestKey ?? "");
-    }
-
-    const key = this.generateKey(userId, page, search, status);
-    this.cache.set(key, {
-      data: { ...data },
-      timestamp: Date.now(),
-    });
-  }
-
-  clear() {
-    this.cache.clear();
-  }
-
-  // Clear cache entries for a specific user (useful when creating new projects)
-  clearUserCache(userId: string) {
-    const keysToDelete = Array.from(this.cache.keys()).filter((key) =>
-      key.startsWith(userId)
-    );
-    keysToDelete.forEach((key) => this.cache.delete(key));
-  }
-}
-
-// Global cache instance
-const projectCache = new ProjectCache();
+import { globalCache } from "@/lib/cache";
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Array<ProjectResponse>>([]);
@@ -125,6 +66,18 @@ export default function ProjectsPage() {
   const { user } = useAuth();
   const router = useRouter();
 
+  // Subscribe to cache invalidation events
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const unsubscribe = globalCache.subscribe(`user:${user.uid}`, () => {
+      // Refetch projects when user cache is invalidated
+      fetchProjectsHandler(currentPage, searchQuery, statusFilter, false);
+    });
+
+    return unsubscribe;
+  }, [user?.uid, currentPage, searchQuery, statusFilter]);
+
   const fetchProjectsHandler = useCallback(
     async (
       page: number = 1,
@@ -139,7 +92,7 @@ export default function ProjectsPage() {
 
       // Check cache first
       if (useCache) {
-        const cached = projectCache.get(user.uid, page, search, status);
+        const cached = globalCache.getProjects(user.uid, page, search, status);
         if (cached) {
           setProjects(cached.projects);
           setTotalPages(cached.totalPages);
@@ -157,7 +110,6 @@ export default function ProjectsPage() {
           search,
           status: status === "all" ? undefined : status,
         });
-        console.log(response);
 
         setProjects(response.projects);
         setTotalPages(response.total_pages);
@@ -165,7 +117,7 @@ export default function ProjectsPage() {
         setCurrentPage(response.current_page);
 
         // Cache the result
-        projectCache.set(user.uid, page, search, status, {
+        globalCache.setProjects(user.uid, page, search, status, {
           projects: response.projects,
           totalPages: response.total_pages,
           totalProjects: response.total_projects,
@@ -190,18 +142,6 @@ export default function ProjectsPage() {
     loadInitialData();
   }, [fetchProjectsHandler]);
 
-  const handleSearch = () => {
-    setSearchQuery(searchInput);
-    setStatusFilter(statusInput);
-    setCurrentPage(1);
-    fetchProjectsHandler(1, searchInput, statusInput, false);
-  };
-
-  const handlePageChange = (page: number) => {
-    if (page < 1 || page > totalPages || isSearching) return;
-    fetchProjectsHandler(page, searchQuery, statusFilter, true);
-  };
-
   const handleCreateProject = async (data: {
     projectName: string;
     clientName: string;
@@ -215,9 +155,9 @@ export default function ProjectsPage() {
         userId: user?.uid,
       });
 
-      // Clear cache for this user since we added a new project
+      // Invalidate cache after creating new project
       if (user?.uid) {
-        projectCache.clearUserCache(user.uid);
+        globalCache.onProjectCreated(user.uid);
       }
 
       router.push(`projects/${projectResponse._id}`);
@@ -225,6 +165,29 @@ export default function ProjectsPage() {
     } catch (error) {
       console.error("Failed to create project:", error);
     }
+  };
+
+  // Initial load
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setIsLoading(true);
+      await fetchProjectsHandler(1, "", "all", true);
+      setIsLoading(false);
+    };
+
+    loadInitialData();
+  }, [fetchProjectsHandler]);
+
+  const handleSearch = () => {
+    setSearchQuery(searchInput);
+    setStatusFilter(statusInput);
+    setCurrentPage(1);
+    fetchProjectsHandler(1, searchInput, statusInput, false);
+  };
+
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages || isSearching) return;
+    fetchProjectsHandler(page, searchQuery, statusFilter, true);
   };
 
   const formatDate = (dateString: string) => {

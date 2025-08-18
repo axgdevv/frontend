@@ -34,6 +34,7 @@ import { executeQA } from "@/api/qas";
 import { ProjectResponse, ProjectStatus } from "@/types/project";
 import { ChecklistResponse } from "@/types/checklist";
 import { QAResponse } from "@/types/qa";
+import { globalCache } from "@/lib/cache";
 
 export default function ProjectDetailPage(props: {
   params: Promise<{ projectId: string; checklistId: string }>;
@@ -51,35 +52,74 @@ export default function ProjectDetailPage(props: {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  useEffect(() => {
+    if (!projectId || !user?.uid) return;
+
+    const unsubscribeProject = globalCache.subscribe(
+      `project:${projectId}`,
+      () => {
+        fetchProjectDataHandler(projectId);
+        fetchChecklistsHandler(projectId);
+        fetchPlanQAsHandler(projectId);
+      }
+    );
+
+    return unsubscribeProject;
+  }, [projectId, user?.uid]);
+
   const fetchProjectDataHandler = async (projectId: string) => {
+    // Check cache first
+    const cached = globalCache.getProject(projectId);
+    if (cached) {
+      setProjectData(cached);
+      return;
+    }
+
     try {
       const projectDataResponse = await fetchProjectById(projectId);
       setProjectData(projectDataResponse);
-      console.log(projectDataResponse);
+
+      // Cache the response
+      globalCache.setProject(projectId, projectDataResponse);
     } catch (error) {
-      // Todo: Redirect back or show some modal
       console.error("Error fetching project:", error);
     }
   };
 
   const fetchChecklistsHandler = async (projectId: string) => {
+    // Check cache first
+    const cached = globalCache.getProjectChecklists(projectId);
+    if (cached) {
+      setChecklists(cached);
+      return;
+    }
+
     try {
       const checklistsResponse = await fetchProjectChecklists(projectId);
-
       setChecklists(checklistsResponse || []);
+
+      // Cache the response
+      globalCache.setProjectChecklists(projectId, checklistsResponse || []);
     } catch (error) {
-      // Todo: Redirect back or show some modal
       console.error("Error fetching checklists:", error);
     }
   };
 
   const fetchPlanQAsHandler = async (projectId: string) => {
+    // Check cache first
+    const cached = globalCache.getProjectQAs(projectId);
+    if (cached) {
+      setQARuns(cached);
+      return;
+    }
+
     try {
       const qaRunsResponse = await fetchProjectQAs(projectId);
-
       setQARuns(qaRunsResponse || []);
+
+      // Cache the response
+      globalCache.setProjectQAs(projectId, qaRunsResponse || []);
     } catch (error) {
-      // Todo: Redirect back or show some modal
       console.error("Error fetching QA runs:", error);
     }
   };
@@ -391,6 +431,12 @@ export default function ProjectDetailPage(props: {
 
     try {
       const response = await generateChecklist(formData);
+
+      // Invalidate cache after creating checklist
+      if (user?.uid) {
+        globalCache.onChecklistCreated(projectId, user.uid);
+      }
+
       router.push(`checklists/${response._id}`);
     } catch (error) {
       console.error("Error uploading files:", error);
@@ -421,7 +467,11 @@ export default function ProjectDetailPage(props: {
     try {
       const response = await executeQA(formData);
 
-      // Route to the QA page with the response ID
+      // Invalidate cache after creating QA
+      if (user?.uid) {
+        globalCache.onQACreated(projectId, user.uid);
+      }
+
       router.push(`/projects/${projectId}/qa/${response._id}`);
     } catch (error) {
       console.error("Error starting QA analysis:", error);

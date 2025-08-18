@@ -36,6 +36,7 @@ import { fetchDashboardData } from "@/api/dashboard/index";
 
 import { DashboardStats } from "@/types/dashboard";
 import { StatsCard } from "@/components/dashboard/StatsCard";
+import { globalCache } from "@/lib/cache";
 
 const Dashboard = () => {
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(
@@ -51,14 +52,35 @@ const Dashboard = () => {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const unsubscribe = globalCache.subscribe(`user:${user.uid}`, () => {
+      // Refetch dashboard data when user cache is invalidated
+      fetchDashboardDataHandler(user.uid);
+    });
+
+    return unsubscribe;
+  }, [user?.uid]);
+
   const fetchDashboardDataHandler = async (userId: string): Promise<void> => {
     setLoading(true);
     setError(null);
 
+    // Check cache first
+    const cached = globalCache.getDashboard(userId);
+    if (cached) {
+      setDashboardStats(cached);
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetchDashboardData(userId);
-      console.log(response);
       setDashboardStats(response);
+
+      // Cache the response
+      globalCache.setDashboard(userId, response);
     } catch (err) {
       console.error("Dashboard fetch error:", err);
       if (axios.isAxiosError(err)) {

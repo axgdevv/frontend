@@ -77,8 +77,6 @@ export default function PlanCheckPage() {
       formData.append("files", file);
     });
 
-    console.log(selectedCategory);
-
     try {
       // Todo: Upload Conditionally
       let response;

@@ -18,6 +18,8 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import BaseModal from "@/components/base/BaseModal";
 import { ChecklistResponse } from "@/types/checklist";
+import { globalCache } from "@/lib/cache";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ChecklistPage(props: {
   params: Promise<{ projectId: string; checklistId: string }>;
@@ -26,8 +28,22 @@ export default function ChecklistPage(props: {
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
   const [checklist, setChecklist] = useState<ChecklistResponse | null>(null);
   const router = useRouter();
+  const user = useAuth();
 
-  const { checklistId } = use(props.params);
+  const { checklistId, projectId } = use(props.params);
+
+  useEffect(() => {
+    if (!checklistId) return;
+
+    const unsubscribe = globalCache.subscribe(
+      `checklist:${checklistId}`,
+      () => {
+        fetchChecklist();
+      }
+    );
+
+    return unsubscribe;
+  }, [checklistId]);
 
   // Server connection states
   const [serverReady, setServerReady] = useState<boolean>(false);
@@ -50,10 +66,22 @@ export default function ChecklistPage(props: {
 
   // Update Logic:
   async function fetchChecklist() {
+    if (!checklistId) return;
+
+    // Check cache first
+    const cached = globalCache.getChecklist(checklistId);
+    if (cached) {
+      setChecklist(cached);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await fetchChecklistById(checklistId);
       setChecklist(response);
+
+      // Cache the response
+      globalCache.setChecklist(checklistId, response);
     } catch (error) {
       console.error(error);
       setChecklist(null);
@@ -75,10 +103,16 @@ export default function ChecklistPage(props: {
     setIsLoading(true);
     try {
       await deleteChecklistById(checklist._id);
+
+      // Invalidate cache after deletion - need user ID and project ID
+      const userId = user?.uid;
+      if (userId && projectId) {
+        globalCache.onChecklistDeleted(checklist._id, projectId, userId);
+      }
+
       setChecklist(null);
       router.back();
     } catch (error) {
-      // Todo: Show Error Modal
       console.error("Failed to delete checklist", error);
     } finally {
       setIsLoading(false);
