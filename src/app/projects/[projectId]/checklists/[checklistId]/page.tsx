@@ -98,17 +98,14 @@ export default function ChecklistPage(props: {
 
   // Delete Checklist:
   async function handleDelete() {
-    if (!checklist) return;
+    if (!checklist || !user?.uid) return;
 
     setIsLoading(true);
     try {
-      await deleteChecklistById(checklist._id);
+      await deleteChecklistById(checklist._id, projectId, user.uid);
 
-      // Invalidate cache after deletion - need user ID and project ID
-      const userId = user?.uid;
-      if (userId && projectId) {
-        globalCache.onChecklistDeleted(checklist._id, projectId, userId);
-      }
+      // Invalidate cache after successful deletion
+      globalCache.onChecklistDeleted(checklist._id, projectId, user.uid);
 
       setChecklist(null);
       router.back();

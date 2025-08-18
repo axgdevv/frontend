@@ -39,12 +39,12 @@ class GlobalCache {
     return `project:${projectId}`;
   }
 
-  private generateProjectChecklistsKey(projectId: string): CacheKey {
-    return `project-checklists:${projectId}`;
+  private generateProjectChecklistsKey(projectId: string, page: number) {
+    return `project-checklists:${projectId}:${page}`;
   }
 
-  private generateProjectQAsKey(projectId: string): CacheKey {
-    return `project-qas:${projectId}`;
+  private generateProjectQAsKey(projectId: string, page: number) {
+    return `project-qas:${projectId}:${page}`;
   }
 
   private generateChecklistKey(checklistId: string): CacheKey {
@@ -160,8 +160,8 @@ class GlobalCache {
   }
 
   // Project checklists cache methods
-  getProjectChecklists(projectId: string) {
-    const key = this.generateProjectChecklistsKey(projectId);
+  getProjectChecklists(projectId: string, page: number) {
+    const key = this.generateProjectChecklistsKey(projectId, page);
     const cached = this.cache.get(key);
 
     if (cached && !this.isExpired(cached)) {
@@ -175,19 +175,19 @@ class GlobalCache {
     return null;
   }
 
-  setProjectChecklists(projectId: string, data: any) {
+  setProjectChecklists(projectId: string, page: number, data: any) {
     this.evictOldest();
-    const key = this.generateProjectChecklistsKey(projectId);
+    const key = this.generateProjectChecklistsKey(projectId, page);
     this.cache.set(key, {
-      data: [...data],
+      data: data,
       timestamp: Date.now(),
       dependencies: [`project:${projectId}`],
     });
   }
 
   // Project QAs cache methods
-  getProjectQAs(projectId: string) {
-    const key = this.generateProjectQAsKey(projectId);
+  getProjectQAs(projectId: string, page: number) {
+    const key = this.generateProjectQAsKey(projectId, page);
     const cached = this.cache.get(key);
 
     if (cached && !this.isExpired(cached)) {
@@ -201,11 +201,11 @@ class GlobalCache {
     return null;
   }
 
-  setProjectQAs(projectId: string, data: any) {
+  setProjectQAs(projectId: string, page: number, data: any) {
     this.evictOldest();
-    const key = this.generateProjectQAsKey(projectId);
+    const key = this.generateProjectQAsKey(projectId, page);
     this.cache.set(key, {
-      data: [...data],
+      data: data,
       timestamp: Date.now(),
       dependencies: [`project:${projectId}`],
     });
@@ -358,6 +358,10 @@ class GlobalCache {
   }
 
   // Advanced invalidation for bulk operations
+  onProjectDeleted(projectId: string, userId: string) {
+    this.invalidateProjectCache(projectId, userId);
+  }
+
   onProjectCreated(userId: string) {
     this.invalidateUserCache(userId);
   }

@@ -21,11 +21,15 @@ import {
   CheckCircle,
   User,
   Layers,
+  Trash2,
 } from "lucide-react";
+
 import {
+  deleteProject,
   fetchProjectById,
   fetchProjectChecklists,
   fetchProjectQAs,
+  updateProjectStatus,
 } from "@/api/projects";
 import CreateChecklistForm from "@/components/projects/checklists/CreateChecklistForm";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,6 +39,23 @@ import { ProjectResponse, ProjectStatus } from "@/types/project";
 import { ChecklistResponse } from "@/types/checklist";
 import { QAResponse } from "@/types/qa";
 import { globalCache } from "@/lib/cache";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function ProjectDetailPage(props: {
   params: Promise<{ projectId: string; checklistId: string }>;
@@ -49,8 +70,36 @@ export default function ProjectDetailPage(props: {
   const [projectData, setProjectData] = useState<ProjectResponse | null>(null);
   const [checklists, setChecklists] = useState<ChecklistResponse[] | []>([]);
   const [qaRuns, setQARuns] = useState<QAResponse[] | []>([]);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [checklistPagination, setChecklistPagination] = useState({
+    total_pages: 1,
+    current_page: 1,
+    has_next: false,
+    has_prev: false,
+    total_checklists: 0,
+  });
+
+  const [qaPagination, setQaPagination] = useState({
+    total_pages: 1,
+    current_page: 1,
+    has_next: false,
+    has_prev: false,
+    total_qas: 0,
+  });
+
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  const [checklistPage, setChecklistPage] = useState(1);
+  const [qaPage, setQAPage] = useState(1);
+
+  useEffect(() => {
+    if (projectId && user) fetchChecklistsHandler(projectId, checklistPage);
+  }, [checklistPage]);
+
+  useEffect(() => {
+    if (projectId && user) fetchPlanQAsHandler(projectId, qaPage);
+  }, [qaPage]);
 
   useEffect(() => {
     if (!projectId || !user?.uid) return;
@@ -86,43 +135,187 @@ export default function ProjectDetailPage(props: {
     }
   };
 
-  const fetchChecklistsHandler = async (projectId: string) => {
-    // Check cache first
-    const cached = globalCache.getProjectChecklists(projectId);
+  const fetchChecklistsHandler = async (projectId: string, page = 1) => {
+    const cached = globalCache.getProjectChecklists(projectId, page);
     if (cached) {
-      setChecklists(cached);
+      setChecklists(cached.checklists || []);
+      setChecklistPagination({
+        total_pages: cached.total_pages || 1,
+        current_page: cached.current_page || 1,
+        has_next: cached.has_next || false,
+        has_prev: cached.has_prev || false,
+        total_checklists: cached.total_checklists || 0,
+      });
       return;
     }
 
     try {
-      const checklistsResponse = await fetchProjectChecklists(projectId);
-      setChecklists(checklistsResponse || []);
+      const response = await fetchProjectChecklists(projectId, page, 4);
+      setChecklists(response.checklists || []);
+      setChecklistPagination({
+        total_pages: response.total_pages || 1,
+        current_page: response.current_page || 1,
+        has_next: response.has_next || false,
+        has_prev: response.has_prev || false,
+        total_checklists: response.total_checklists || 0,
+      });
 
       // Cache the response
-      globalCache.setProjectChecklists(projectId, checklistsResponse || []);
+      globalCache.setProjectChecklists(projectId, page, response);
     } catch (error) {
       console.error("Error fetching checklists:", error);
     }
   };
 
-  const fetchPlanQAsHandler = async (projectId: string) => {
-    // Check cache first
-    const cached = globalCache.getProjectQAs(projectId);
+  const fetchPlanQAsHandler = async (projectId: string, page = 1) => {
+    const cached = globalCache.getProjectQAs(projectId, page);
     if (cached) {
-      setQARuns(cached);
+      setQARuns(cached.qas || []);
+      setQaPagination({
+        total_pages: cached.total_pages || 1,
+        current_page: cached.current_page || 1,
+        has_next: cached.has_next || false,
+        has_prev: cached.has_prev || false,
+        total_qas: cached.total_qas || 0,
+      });
       return;
     }
 
     try {
-      const qaRunsResponse = await fetchProjectQAs(projectId);
-      setQARuns(qaRunsResponse || []);
+      const response = await fetchProjectQAs(projectId, page, 4);
+      setQARuns(response.qas || []);
+      setQaPagination({
+        total_pages: response.total_pages || 1,
+        current_page: response.current_page || 1,
+        has_next: response.has_next || false,
+        has_prev: response.has_prev || false,
+        total_qas: response.total_qas || 0,
+      });
 
       // Cache the response
-      globalCache.setProjectQAs(projectId, qaRunsResponse || []);
+      globalCache.setProjectQAs(projectId, page, response);
     } catch (error) {
       console.error("Error fetching QA runs:", error);
     }
   };
+
+  const handleUpdateStatus = async (status: ProjectStatus) => {
+    if (!projectData || !user) return;
+
+    try {
+      const updatedProject = await updateProjectStatus({
+        _id: projectId,
+        status: projectData.status,
+      });
+      setProjectData(updatedProject); // Optimistic UI update
+      globalCache.onProjectUpdated(projectId, user.uid);
+    } catch (error) {
+      console.error("Error updating project status:", error);
+      // Optional: Add error handling/toast message
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    if (!user) return;
+    try {
+      await deleteProject({ _id: projectId, userId: user.uid });
+      globalCache.onProjectDeleted(projectId, user.uid);
+      router.push("/projects"); // Redirect after deletion
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      // Optional: Add error handling/toast message
+    }
+  };
+  const ChecklistPaginationControls = () => (
+    <div className="flex items-center justify-between px-6 py-3 bg-gray-50 border-t border-gray-200">
+      <div className="flex items-center text-sm text-gray-500">
+        <span>
+          Showing page {checklistPagination.current_page} of{" "}
+          {checklistPagination.total_pages}(
+          {checklistPagination.total_checklists} total checklists)
+        </span>
+      </div>
+      <div className="flex items-center space-x-2">
+        <Button
+          onClick={() => setChecklistPage(1)}
+          disabled={!checklistPagination.has_prev}
+          variant="outline"
+          size="sm"
+        >
+          First
+        </Button>
+        <Button
+          onClick={() => setChecklistPage(checklistPagination.current_page - 1)}
+          disabled={!checklistPagination.has_prev}
+          variant="outline"
+          size="sm"
+        >
+          Previous
+        </Button>
+        <Button
+          onClick={() => setChecklistPage(checklistPagination.current_page + 1)}
+          disabled={!checklistPagination.has_next}
+          variant="outline"
+          size="sm"
+        >
+          Next
+        </Button>
+        <Button
+          onClick={() => setChecklistPage(checklistPagination.total_pages)}
+          disabled={!checklistPagination.has_next}
+          variant="outline"
+          size="sm"
+        >
+          Last
+        </Button>
+      </div>
+    </div>
+  );
+
+  const QAPaginationControls = () => (
+    <div className="flex items-center justify-between px-6 py-3 bg-gray-50 border-t border-gray-200">
+      <div className="flex items-center text-sm text-gray-500">
+        <span>
+          Showing page {qaPagination.current_page} of {qaPagination.total_pages}
+          ({qaPagination.total_qas} total QA runs)
+        </span>
+      </div>
+      <div className="flex items-center space-x-2">
+        <Button
+          onClick={() => setQAPage(1)}
+          disabled={!qaPagination.has_prev}
+          variant="outline"
+          size="sm"
+        >
+          First
+        </Button>
+        <Button
+          onClick={() => setQAPage(qaPagination.current_page - 1)}
+          disabled={!qaPagination.has_prev}
+          variant="outline"
+          size="sm"
+        >
+          Previous
+        </Button>
+        <Button
+          onClick={() => setQAPage(qaPagination.current_page + 1)}
+          disabled={!qaPagination.has_next}
+          variant="outline"
+          size="sm"
+        >
+          Next
+        </Button>
+        <Button
+          onClick={() => setQAPage(qaPagination.total_pages)}
+          disabled={!qaPagination.has_next}
+          variant="outline"
+          size="sm"
+        >
+          Last
+        </Button>
+      </div>
+    </div>
+  );
 
   useEffect(() => {
     if (projectId && user) {
@@ -279,6 +472,7 @@ export default function ProjectDetailPage(props: {
               ))}
             </tbody>
           </table>
+          <ChecklistPaginationControls />
         </div>
       ) : (
         <div className="text-center py-12 bg-white border border-gray-200 rounded-lg">
@@ -394,6 +588,7 @@ export default function ProjectDetailPage(props: {
               })}
             </tbody>
           </table>
+          <QAPaginationControls />
         </div>
       ) : (
         <div className="text-center py-12 bg-white border border-gray-200 rounded-lg">
@@ -560,6 +755,38 @@ export default function ProjectDetailPage(props: {
                   <PlayCircle className="h-4 w-4" />
                   <span>Run QA</span>
                 </Button>
+                <Select
+                  onValueChange={(value: ProjectStatus) =>
+                    handleUpdateStatus(value)
+                  }
+                  value={projectData.status}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Update Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(
+                      [
+                        "in_progress",
+                        "completed",
+                        "under_review",
+                        "cancelled",
+                      ] as ProjectStatus[]
+                    ).map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {getStatusInfo(status).label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  variant="outline"
+                  className="bg-white hover:bg-gray-100 border-gray-300 transition-colors duration-200 cursor-pointer"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4 text-red-500 hover:text-red-600 transition-colors duration-200" />
+                </Button>
               </div>
             </div>
           </div>
@@ -657,6 +884,30 @@ export default function ProjectDetailPage(props: {
           </Card>
         </div>
       </div>
+
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              project, along with all of its associated Checklists and QA runs.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteProject}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete Project
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ProtectedRoute>
   );
 }
