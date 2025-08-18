@@ -34,10 +34,12 @@ export const generateChecklist = async (checklistGenerationDocuments) => {
   }
 };
 
-export const deleteChecklistById = async (checklistId) => {
+export const deleteChecklistById = async (checklistId, projectId, userId) => {
   try {
     const response = await api.post("checklists/structural/delete", {
       checklist_id: checklistId,
+      project_id: projectId,
+      user_id: userId,
     });
     return response.data;
   } catch (error) {

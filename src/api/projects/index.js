@@ -40,6 +40,32 @@ export const createNewProject = async (projectData) => {
   }
 };
 
+export const updateProjectStatus = async (projectData) => {
+  try {
+    const response = await api.post("projects/structural/update", {
+      id: projectData._id,
+      status: projectData.status,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    throw error;
+  }
+};
+
+export const deleteProject = async (projectData) => {
+  try {
+    const response = await api.post("projects/structural/delete", {
+      id: projectData._id,
+      user_id: projectData.userId,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    throw error;
+  }
+};
+
 export const fetchProjectById = async (id) => {
   try {
     const response = await api.get(`projects/structural/${id}`);
@@ -50,9 +76,11 @@ export const fetchProjectById = async (id) => {
   }
 };
 
-export const fetchProjectQAs = async (projectId) => {
+export const fetchProjectQAs = async (projectId, page = 1, limit = 4) => {
   try {
-    const response = await api.get(`projects/structural/${projectId}/qas`);
+    const response = await api.get(
+      `projects/structural/${projectId}/qas?page=${page}&limit=${limit}`
+    );
     return response.data;
   } catch (error) {
     console.error("Error fetching user data:", error);
@@ -60,10 +88,14 @@ export const fetchProjectQAs = async (projectId) => {
   }
 };
 
-export const fetchProjectChecklists = async (projectId) => {
+export const fetchProjectChecklists = async (
+  projectId,
+  page = 1,
+  limit = 4
+) => {
   try {
     const response = await api.get(
-      `projects/structural/${projectId}/checklists`
+      `projects/structural/${projectId}/checklists?page=${page}&limit=${limit}`
     );
     return response.data;
   } catch (error) {

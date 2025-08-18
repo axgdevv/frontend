@@ -34,14 +34,16 @@ export const fetchQAById = async (qaId) => {
   }
 };
 
-export const deleteQAById = async (planCheckId) => {
+export const deleteQAById = async (qaId, projectId, userId) => {
   try {
-    const response = await api.post("plan-check/structural/delete-plan-check", {
-      plan_check_id: planCheckId,
+    const response = await api.post("qas/structural/delete", {
+      id: qaId,
+      project_id: projectId,
+      user_id: userId,
     });
     return response.data;
   } catch (error) {
-    console.error("Error deleting checklist:", error);
+    console.error("Error deleting QA:", error);
     throw error;
   }
 };

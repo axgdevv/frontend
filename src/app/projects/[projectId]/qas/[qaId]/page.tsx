@@ -85,14 +85,14 @@ export default function QaPage(props: {
   }, [qaId]);
 
   async function handleDelete() {
-    if (!data) return;
+    if (!data || !user?.uid) return;
 
     setIsLoading(true);
     try {
-      await deleteQAById(data._id);
-
-      // Invalidate cache after deletion - need user ID and project ID
       const userId = user?.uid;
+
+      await deleteQAById(data._id, projectId, userId);
+      // Invalidate cache after deletion - need user ID and project ID
       if (userId && projectId) {
         globalCache.onQADeleted(data._id, projectId, userId);
       }
