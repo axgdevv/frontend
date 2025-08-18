@@ -4,11 +4,18 @@ const api = axios.create({
   baseURL: `${process.env.SERVER_BASE_URL}/`,
 });
 
-export const fetchStructuralProjectsByUser = async (userId) => {
+export const fetchStructuralProjectsByUser = async (userId, options) => {
   try {
+    const { page = 1, limit = 4, search = "", status } = options;
+
     const response = await api.post("projects/structural/get-all", {
       user_id: userId,
+      page,
+      limit,
+      search,
+      status,
     });
+
     return response.data;
   } catch (error) {
     console.error("Error fetching user data:", error);
