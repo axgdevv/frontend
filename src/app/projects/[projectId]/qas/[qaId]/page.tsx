@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/badge";
 // API functions
 import { fetchQAById, deleteQAById } from "@/api/qas/index";
 import { QAResponse } from "@/types/qa";
-import { globalCache } from "@/lib/cache";
+
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function QaPage(props: {
@@ -42,33 +42,13 @@ export default function QaPage(props: {
 
   const { qaId, projectId } = use(props.params);
 
-  useEffect(() => {
-    if (!qaId) return;
-
-    const unsubscribe = globalCache.subscribe(`qa:${qaId}`, () => {
-      fetchQAData();
-    });
-
-    return unsubscribe;
-  }, [qaId]);
-
   async function fetchQAData() {
     if (!qaId) return;
-
-    // Check cache first
-    const cached = globalCache.getQA(qaId);
-    if (cached) {
-      setData(cached);
-      return;
-    }
 
     setIsLoading(true);
     try {
       const response = await fetchQAById(qaId);
       setData(response);
-
-      // Cache the response
-      globalCache.setQA(qaId, response);
     } catch (error) {
       console.error(error);
       setData(null);
@@ -91,10 +71,6 @@ export default function QaPage(props: {
       const userId = user?.uid;
 
       await deleteQAById(data._id, projectId, userId);
-      // Invalidate cache after deletion - need user ID and project ID
-      if (userId && projectId) {
-        globalCache.onQADeleted(data._id, projectId, userId);
-      }
 
       setData(null);
       router.back();

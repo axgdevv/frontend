@@ -18,7 +18,6 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import BaseModal from "@/components/base/BaseModal";
 import { ChecklistResponse } from "@/types/checklist";
-import { globalCache } from "@/lib/cache";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function ChecklistPage(props: {
@@ -31,19 +30,6 @@ export default function ChecklistPage(props: {
   const user = useAuth();
 
   const { checklistId, projectId } = use(props.params);
-
-  useEffect(() => {
-    if (!checklistId) return;
-
-    const unsubscribe = globalCache.subscribe(
-      `checklist:${checklistId}`,
-      () => {
-        fetchChecklist();
-      }
-    );
-
-    return unsubscribe;
-  }, [checklistId]);
 
   // Server connection states
   const [serverReady, setServerReady] = useState<boolean>(false);
@@ -68,20 +54,10 @@ export default function ChecklistPage(props: {
   async function fetchChecklist() {
     if (!checklistId) return;
 
-    // Check cache first
-    const cached = globalCache.getChecklist(checklistId);
-    if (cached) {
-      setChecklist(cached);
-      return;
-    }
-
     setIsLoading(true);
     try {
       const response = await fetchChecklistById(checklistId);
       setChecklist(response);
-
-      // Cache the response
-      globalCache.setChecklist(checklistId, response);
     } catch (error) {
       console.error(error);
       setChecklist(null);
@@ -103,9 +79,6 @@ export default function ChecklistPage(props: {
     setIsLoading(true);
     try {
       await deleteChecklistById(checklist._id, projectId, user.uid);
-
-      // Invalidate cache after successful deletion
-      globalCache.onChecklistDeleted(checklist._id, projectId, user.uid);
 
       setChecklist(null);
       router.back();

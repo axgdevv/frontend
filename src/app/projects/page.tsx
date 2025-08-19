@@ -42,7 +42,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { globalCache } from "@/lib/cache";
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Array<ProjectResponse>>([]);
@@ -66,40 +65,15 @@ export default function ProjectsPage() {
   const { user } = useAuth();
   const router = useRouter();
 
-  // Subscribe to cache invalidation events
-  useEffect(() => {
-    if (!user?.uid) return;
-
-    const unsubscribe = globalCache.subscribe(`user:${user.uid}`, () => {
-      // Refetch projects when user cache is invalidated
-      fetchProjectsHandler(currentPage, searchQuery, statusFilter, false);
-    });
-
-    return unsubscribe;
-  }, [user?.uid, currentPage, searchQuery, statusFilter]);
-
   const fetchProjectsHandler = useCallback(
     async (
       page: number = 1,
       search: string = "",
-      status: ProjectStatus | "all" = "all",
-      useCache: boolean = true
+      status: ProjectStatus | "all" = "all"
     ) => {
       if (!user?.uid) {
         console.log("User not ready yet");
         return;
-      }
-
-      // Check cache first
-      if (useCache) {
-        const cached = globalCache.getProjects(user.uid, page, search, status);
-        if (cached) {
-          setProjects(cached.projects);
-          setTotalPages(cached.totalPages);
-          setTotalProjects(cached.totalProjects);
-          setCurrentPage(page);
-          return;
-        }
       }
 
       setIsSearching(true);
@@ -115,13 +89,6 @@ export default function ProjectsPage() {
         setTotalPages(response.total_pages);
         setTotalProjects(response.total_projects);
         setCurrentPage(response.current_page);
-
-        // Cache the result
-        globalCache.setProjects(user.uid, page, search, status, {
-          projects: response.projects,
-          totalPages: response.total_pages,
-          totalProjects: response.total_projects,
-        });
       } catch (err) {
         console.error("Failed to fetch projects", err);
       } finally {
@@ -135,7 +102,7 @@ export default function ProjectsPage() {
   useEffect(() => {
     const loadInitialData = async () => {
       setIsLoading(true);
-      await fetchProjectsHandler(1, "", "all", true);
+      await fetchProjectsHandler(1, "", "all");
       setIsLoading(false);
     };
 
@@ -155,11 +122,6 @@ export default function ProjectsPage() {
         userId: user?.uid,
       });
 
-      // Invalidate cache after creating new project
-      if (user?.uid) {
-        globalCache.onProjectCreated(user.uid);
-      }
-
       router.push(`projects/${projectResponse._id}`);
       setIsCreateProjectOpen(false);
     } catch (error) {
@@ -171,7 +133,7 @@ export default function ProjectsPage() {
   useEffect(() => {
     const loadInitialData = async () => {
       setIsLoading(true);
-      await fetchProjectsHandler(1, "", "all", true);
+      await fetchProjectsHandler(1, "", "all");
       setIsLoading(false);
     };
 
@@ -182,12 +144,12 @@ export default function ProjectsPage() {
     setSearchQuery(searchInput);
     setStatusFilter(statusInput);
     setCurrentPage(1);
-    fetchProjectsHandler(1, searchInput, statusInput, false);
+    fetchProjectsHandler(1, searchInput, statusInput);
   };
 
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages || isSearching) return;
-    fetchProjectsHandler(page, searchQuery, statusFilter, true);
+    fetchProjectsHandler(page, searchQuery, statusFilter);
   };
 
   const formatDate = (dateString: string) => {
@@ -472,7 +434,7 @@ export default function ProjectsPage() {
     <ProtectedRoute>
       <div className="max-h-full h-full overflow-y-auto w-full bg-gray-50">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="bg-white border-b border-gray-200 sticky top-0 z-5">
           <div className="px-6 py-4">
             <div className="flex items-center justify-between">
               <div>
@@ -489,9 +451,9 @@ export default function ProjectsPage() {
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className=" space-y-6">
           {/* Filters and Search */}
-          <Card className="border-gray-200">
+          <Card className="border-gray-200 mx-6 mt-6">
             <CardContent className="p-4">
               <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
                 <div className="flex flex-col sm:flex-row gap-4 items-center flex-1">
@@ -602,8 +564,8 @@ export default function ProjectsPage() {
               <div
                 className={
                   viewMode === "grid"
-                    ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                    : "space-y-4"
+                    ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-6"
+                    : "space-y-4 px-6"
                 }
               >
                 {projects.map((project) =>

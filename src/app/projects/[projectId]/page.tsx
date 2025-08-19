@@ -38,7 +38,7 @@ import { executeQA } from "@/api/qas";
 import { ProjectResponse, ProjectStatus } from "@/types/project";
 import { ChecklistResponse } from "@/types/checklist";
 import { QAResponse } from "@/types/qa";
-import { globalCache } from "@/lib/cache";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -101,54 +101,16 @@ export default function ProjectDetailPage(props: {
     if (projectId && user) fetchPlanQAsHandler(projectId, qaPage);
   }, [qaPage]);
 
-  useEffect(() => {
-    if (!projectId || !user?.uid) return;
-
-    const unsubscribeProject = globalCache.subscribe(
-      `project:${projectId}`,
-      () => {
-        fetchProjectDataHandler(projectId);
-        fetchChecklistsHandler(projectId);
-        fetchPlanQAsHandler(projectId);
-      }
-    );
-
-    return unsubscribeProject;
-  }, [projectId, user?.uid]);
-
   const fetchProjectDataHandler = async (projectId: string) => {
-    // Check cache first
-    const cached = globalCache.getProject(projectId);
-    if (cached) {
-      setProjectData(cached);
-      return;
-    }
-
     try {
       const projectDataResponse = await fetchProjectById(projectId);
       setProjectData(projectDataResponse);
-
-      // Cache the response
-      globalCache.setProject(projectId, projectDataResponse);
     } catch (error) {
       console.error("Error fetching project:", error);
     }
   };
 
   const fetchChecklistsHandler = async (projectId: string, page = 1) => {
-    const cached = globalCache.getProjectChecklists(projectId, page);
-    if (cached) {
-      setChecklists(cached.checklists || []);
-      setChecklistPagination({
-        total_pages: cached.total_pages || 1,
-        current_page: cached.current_page || 1,
-        has_next: cached.has_next || false,
-        has_prev: cached.has_prev || false,
-        total_checklists: cached.total_checklists || 0,
-      });
-      return;
-    }
-
     try {
       const response = await fetchProjectChecklists(projectId, page, 4);
       setChecklists(response.checklists || []);
@@ -159,28 +121,12 @@ export default function ProjectDetailPage(props: {
         has_prev: response.has_prev || false,
         total_checklists: response.total_checklists || 0,
       });
-
-      // Cache the response
-      globalCache.setProjectChecklists(projectId, page, response);
     } catch (error) {
       console.error("Error fetching checklists:", error);
     }
   };
 
   const fetchPlanQAsHandler = async (projectId: string, page = 1) => {
-    const cached = globalCache.getProjectQAs(projectId, page);
-    if (cached) {
-      setQARuns(cached.qas || []);
-      setQaPagination({
-        total_pages: cached.total_pages || 1,
-        current_page: cached.current_page || 1,
-        has_next: cached.has_next || false,
-        has_prev: cached.has_prev || false,
-        total_qas: cached.total_qas || 0,
-      });
-      return;
-    }
-
     try {
       const response = await fetchProjectQAs(projectId, page, 4);
       setQARuns(response.qas || []);
@@ -191,9 +137,6 @@ export default function ProjectDetailPage(props: {
         has_prev: response.has_prev || false,
         total_qas: response.total_qas || 0,
       });
-
-      // Cache the response
-      globalCache.setProjectQAs(projectId, page, response);
     } catch (error) {
       console.error("Error fetching QA runs:", error);
     }
@@ -208,7 +151,6 @@ export default function ProjectDetailPage(props: {
         status: status,
       });
       setProjectData(updatedProject); // Optimistic UI update
-      globalCache.onProjectUpdated(projectId, user.uid);
     } catch (error) {
       console.error("Error updating project status:", error);
       // Optional: Add error handling/toast message
@@ -219,7 +161,7 @@ export default function ProjectDetailPage(props: {
     if (!user) return;
     try {
       await deleteProject({ _id: projectId, userId: user.uid });
-      globalCache.onProjectDeleted(projectId, user.uid);
+
       router.push("/projects"); // Redirect after deletion
     } catch (error) {
       console.error("Error deleting project:", error);
@@ -627,11 +569,6 @@ export default function ProjectDetailPage(props: {
     try {
       const response = await generateChecklist(formData);
 
-      // Invalidate cache after creating checklist
-      if (user?.uid) {
-        globalCache.onChecklistCreated(projectId, user.uid);
-      }
-
       router.push(`checklists/${response._id}`);
     } catch (error) {
       console.error("Error uploading files:", error);
@@ -661,11 +598,6 @@ export default function ProjectDetailPage(props: {
 
     try {
       const response = await executeQA(formData);
-
-      // Invalidate cache after creating QA
-      if (user?.uid) {
-        globalCache.onQACreated(projectId, user.uid);
-      }
 
       router.push(`/projects/${projectId}/qa/${response._id}`);
     } catch (error) {
