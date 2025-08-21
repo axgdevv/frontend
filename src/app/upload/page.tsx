@@ -27,21 +27,25 @@ const DOCUMENT_CATEGORIES = [
     id: "city_comments",
     name: "City Plan Comments",
     description: "Structural Engineering plan check comments",
+    isDisabled: false,
   },
   {
     id: "structural_kb",
     name: "Structural Engineering Knowledge Base",
     description: "Structural engineering knowledge base",
+    isDisabled: true,
   },
   {
     id: "arch_kb",
     name: "Architectural Knowledge Base",
     description: "Architectural knowledge base",
+    isDisabled: true,
   },
   {
     id: "codes_standards",
     name: "Codes & Standards",
     description: "Building codes and standards",
+    isDisabled: true,
   },
 ];
 
@@ -154,12 +158,16 @@ export default function PlanCheckPage() {
         <div className="space-y-2">
           <Label htmlFor="category">Document Type</Label>
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger>
+            <SelectTrigger className="cursor-pointer">
               <SelectValue placeholder="Select document type" />
             </SelectTrigger>
             <SelectContent>
               {DOCUMENT_CATEGORIES.map((category) => (
-                <SelectItem key={category.id} value={category.id}>
+                <SelectItem
+                  disabled={category.isDisabled}
+                  key={category.id}
+                  value={category.id}
+                >
                   {category.name}
                 </SelectItem>
               ))}

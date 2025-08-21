@@ -19,7 +19,6 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import BaseModal from "@/components/base/BaseModal";
 import { Badge } from "@/components/ui/badge";
 
 // API functions
@@ -27,6 +26,16 @@ import { fetchQAById, deleteQAById } from "@/api/qas/index";
 import { QAResponse } from "@/types/qa";
 
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function QaPage(props: {
   params: Promise<{ projectId: string; qaId: string }>;
@@ -38,7 +47,7 @@ export default function QaPage(props: {
   const [data, setData] = useState<QAResponse | null>(null);
 
   const router = useRouter();
-  const user = useAuth();
+  const { user } = useAuth();
 
   const { qaId, projectId } = use(props.params);
 
@@ -147,7 +156,7 @@ export default function QaPage(props: {
                     <Button
                       variant="ghost"
                       onClick={() => router.back()}
-                      className="p-2 hover:bg-gray-100 rounded-lg"
+                      className="p-2 hover:bg-gray-100 rounded-lg cursor-pointer border"
                     >
                       <ArrowLeft className="h-5 w-5" />
                     </Button>
@@ -235,28 +244,33 @@ export default function QaPage(props: {
               {/* QA Results */}
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold">
-                    Quality Assurance Results
-                  </h2>
-                  {data && (
-                    <Badge
-                      variant="outline"
-                      className={
-                        data.items?.length > 0
-                          ? "border-orange-200 text-orange-700 bg-orange-50"
-                          : "border-green-200 text-green-700 bg-green-50"
-                      }
-                    >
-                      {data.items?.length || 0} issues found
-                    </Badge>
-                  )}
+                  <div className="space-x-2 flex items-center">
+                    <h2 className="text-lg font-semibold">
+                      Quality Assurance Results
+                    </h2>
+
+                    <div>
+                      {data && (
+                        <Badge
+                          variant="outline"
+                          className={
+                            data.items?.length > 0
+                              ? "border-orange-200 text-orange-700 bg-orange-50"
+                              : "border-green-200 text-green-700 bg-green-50"
+                          }
+                        >
+                          {data.items?.length || 0} issues found
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
 
                   <div className="flex items-center space-x-2">
                     <Button
                       variant="ghost"
                       onClick={() => setShowDeleteModal(true)}
                       disabled={isLoading}
-                      className="p-2 hover:bg-red-50 hover:text-red-600"
+                      className="p-2 hover:bg-red-50 hover:text-red-600 cursor-pointer"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -284,9 +298,9 @@ export default function QaPage(props: {
                               {item.priority}
                             </Badge>
                           </div>
-                          <span className="text-xs text-gray-500">
+                          {/* <span className="text-xs text-gray-500">
                             Confidence: {item.confidence}
-                          </span>
+                          </span> */}
                         </div>
 
                         <h3 className="font-semibold text-gray-900 mb-2">
@@ -323,14 +337,63 @@ export default function QaPage(props: {
         </ResizablePanelGroup>
       </div>
 
-      <BaseModal
-        open={showDeleteModal}
-        type="delete"
-        title="Delete QA Run"
-        message="This action cannot be undone. Do you want to proceed?"
-        onConfirm={handleDelete}
-        onCancel={() => setShowDeleteModal(false)}
-      />
+      <AlertDialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the QA
+              Run.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="cursor-pointer" disabled={isLoading}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                setIsLoading(true);
+                try {
+                  await handleDelete();
+                  setShowDeleteModal(false);
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+              disabled={isLoading}
+              className="bg-red-600 hover:bg-red-700 flex items-center justify-center cursor-pointer"
+            >
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <svg
+                    className="animate-spin h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    ></path>
+                  </svg>
+                  Deleting...
+                </div>
+              ) : (
+                "Delete QA Run"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ProtectedRoute>
   );
 }

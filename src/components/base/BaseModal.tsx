@@ -12,7 +12,7 @@ import { AlertTriangle } from "lucide-react";
 
 interface BaseModalProps {
   open: boolean;
-  type?: "delete"; // can be extended later: "delete" | "info" | "warning"
+  type?: "delete";
   title?: string;
   message?: string;
   onConfirm: () => void;

@@ -76,11 +76,22 @@ const CreateChecklistForm: React.FC<CreateChecklistFormProps> = ({
             />
           </div>
           {selectedFiles.length > 0 && (
-            <ul>
-              {selectedFiles.map((file, index) => (
-                <li key={index}>{file.name}</li>
-              ))}
-            </ul>
+            <div className="space-y-2">
+              <Label>Selected Files ({selectedFiles.length})</Label>
+              <ul className="text-sm space-y-1 max-h-40 overflow-y-auto border rounded p-2 bg-white">
+                {selectedFiles.map((file, index) => (
+                  <li
+                    key={index}
+                    className="flex justify-between items-center p-2 bg-gray-50 rounded"
+                  >
+                    <span>{file.name}</span>
+                    <span className="text-xs text-gray-500">
+                      {(file.size / 1024 / 1024).toFixed(2)} MB
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
 
           <div className="space-x-2 flex items-center">

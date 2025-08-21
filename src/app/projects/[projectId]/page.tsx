@@ -150,10 +150,9 @@ export default function ProjectDetailPage(props: {
         _id: projectId,
         status: status,
       });
-      setProjectData(updatedProject); // Optimistic UI update
+      setProjectData(updatedProject);
     } catch (error) {
       console.error("Error updating project status:", error);
-      // Optional: Add error handling/toast message
     }
   };
 
@@ -165,7 +164,6 @@ export default function ProjectDetailPage(props: {
       router.push("/projects"); // Redirect after deletion
     } catch (error) {
       console.error("Error deleting project:", error);
-      // Optional: Add error handling/toast message
     }
   };
   const ChecklistPaginationControls = () => (
@@ -405,7 +403,7 @@ export default function ProjectDetailPage(props: {
                       }}
                       variant="ghost"
                       size="sm"
-                      className="text-gray-600 hover:text-gray-900"
+                      className="text-gray-600 hover:text-gray-900 cursor-pointer"
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -519,7 +517,7 @@ export default function ProjectDetailPage(props: {
                           }}
                           variant="ghost"
                           size="sm"
-                          className="text-gray-600 hover:text-gray-900"
+                          className="text-gray-600 hover:text-gray-900 cursor-pointer"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -561,6 +559,8 @@ export default function ProjectDetailPage(props: {
     formData.append("user_id", user.uid);
     formData.append("project_id", projectId);
     formData.append("title", `Checklist #${projectData.checklist_count + 1}`);
+    formData.append("state", projectData.state);
+    formData.append("city", projectData.city);
 
     files.forEach((file) => {
       formData.append("file", file);
@@ -568,8 +568,7 @@ export default function ProjectDetailPage(props: {
 
     try {
       const response = await generateChecklist(formData);
-
-      router.push(`checklists/${response._id}`);
+      router.push(`/projects/${projectId}/checklists/${response._id}`);
     } catch (error) {
       console.error("Error uploading files:", error);
     }
@@ -599,7 +598,7 @@ export default function ProjectDetailPage(props: {
     try {
       const response = await executeQA(formData);
 
-      router.push(`/projects/${projectId}/qa/${response._id}`);
+      router.push(`/projects/${projectId}/qas/${response._id}`);
     } catch (error) {
       console.error("Error starting QA analysis:", error);
     }
@@ -622,105 +621,117 @@ export default function ProjectDetailPage(props: {
         <div className="w-full space-y-6">
           {/* Header - Always Visible */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-0 z-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <Building2 className="h-8 w-8 text-blue-600" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900">
-                    {projectData.project_name}
-                  </h1>
-                  <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-                    <div className="flex items-center space-x-1">
-                      <MapPin className="h-4 w-4" />
-                      <span>
-                        {projectData.city}, {projectData.state}
-                      </span>
-                    </div>
-                    {projectData.client_name && (
-                      <div className="flex items-center space-x-1">
-                        <User className="h-4 w-4" />
-                        <span>{projectData.client_name}</span>
-                      </div>
-                    )}
-                    <Badge
-                      variant="secondary"
-                      className="bg-purple-100 text-purple-800 border-purple-200"
+            {/* <div className="flex items-center justify-between"> */}
+            <div className="flex space-x-4 items-center justify-">
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <Building2 className="h-8 w-8 text-blue-600" />
+              </div>
+
+              <div className="space-y-4 w-full">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h1 className="text-3xl font-bold text-gray-900">
+                      {projectData.project_name}
+                    </h1>
+                  </div>
+                  {/* Buttons */}
+                  <div className="flex space-x-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsCreateChecklistOpen(true);
+                      }}
+                      className="flex items-center cursor-pointer"
                     >
-                      {projectData.project_type}
-                    </Badge>
-                    {projectData.domain && (
-                      <div className="flex items-center space-x-1">
-                        <Layers className="h-4 w-4" />
-                        <span className="capitalize">{projectData.domain}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center space-x-1">
-                      <Calendar className="h-4 w-4" />
-                      <span>Created {formatDate(projectData.created_at)}</span>
-                    </div>
-                    <Badge variant="outline" className={statusInfo.className}>
-                      {statusInfo.label}
-                    </Badge>
+                      <Plus className="h-4 w-4" />
+                      <span>Generate Checklist</span>
+                    </Button>
+
+                    <Button
+                      onClick={() => {
+                        setIsCreateQAOpen(true);
+                      }}
+                      className="flex items-center bg-[#00332A] hover:bg-[#00332A] text-white hover:opacity-90 hover:cursor-pointer"
+                    >
+                      <PlayCircle className="h-4 w-4" />
+                      <span>Run QA</span>
+                    </Button>
+                    <Select
+                      onValueChange={(value: ProjectStatus) =>
+                        handleUpdateStatus(value)
+                      }
+                      value={projectData.status}
+                    >
+                      <SelectTrigger className="cursor-pointer">
+                        <SelectValue placeholder="Update Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(
+                          [
+                            "in_progress",
+                            "completed",
+                            "under_review",
+                            "cancelled",
+                          ] as ProjectStatus[]
+                        ).map((status) => (
+                          <SelectItem
+                            className="cursor-pointer"
+                            key={status}
+                            value={status}
+                          >
+                            {getStatusInfo(status).label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Button
+                      variant="outline"
+                      className="bg-white hover:bg-gray-100 border-gray-300 transition-colors duration-200 cursor-pointer"
+                      onClick={() => setIsDeleteDialogOpen(true)}
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500 hover:text-red-600 transition-colors duration-200" />
+                    </Button>
                   </div>
                 </div>
-              </div>
-              <div className="flex space-x-3">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsCreateChecklistOpen(true);
-                  }}
-                  className="flex items-center cursor-pointer"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Generate Checklist</span>
-                </Button>
 
-                <Button
-                  onClick={() => {
-                    setIsCreateQAOpen(true);
-                  }}
-                  className="flex items-center bg-[#00332A] hover:bg-[#00332A] text-white hover:opacity-90 hover:cursor-pointer"
-                >
-                  <PlayCircle className="h-4 w-4" />
-                  <span>Run QA</span>
-                </Button>
-                <Select
-                  onValueChange={(value: ProjectStatus) =>
-                    handleUpdateStatus(value)
-                  }
-                  value={projectData.status}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Update Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(
-                      [
-                        "in_progress",
-                        "completed",
-                        "under_review",
-                        "cancelled",
-                      ] as ProjectStatus[]
-                    ).map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {getStatusInfo(status).label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Button
-                  variant="outline"
-                  className="bg-white hover:bg-gray-100 border-gray-300 transition-colors duration-200 cursor-pointer"
-                  onClick={() => setIsDeleteDialogOpen(true)}
-                >
-                  <Trash2 className="h-4 w-4 text-red-500 hover:text-red-600 transition-colors duration-200" />
-                </Button>
+                {/* Small font data */}
+                <div className="flex items-center space-x-5 mt-2 text-sm text-gray-600">
+                  <div className="flex items-center space-x-1">
+                    <MapPin className="h-4 w-4" />
+                    <span>
+                      {projectData.city}, {projectData.state}
+                    </span>
+                  </div>
+                  {projectData.client_name && (
+                    <div className="flex items-center space-x-1">
+                      <User className="h-4 w-4" />
+                      <span>{projectData.client_name}</span>
+                    </div>
+                  )}
+                  <Badge
+                    variant="secondary"
+                    className="bg-purple-100 text-purple-800 border-purple-200"
+                  >
+                    {projectData.project_type}
+                  </Badge>
+                  {projectData.domain && (
+                    <div className="flex items-center space-x-1">
+                      <Layers className="h-4 w-4" />
+                      <span className="capitalize">{projectData.domain}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center space-x-1">
+                    <Calendar className="h-4 w-4" />
+                    <span>Created {formatDate(projectData.created_at)}</span>
+                  </div>
+                  <Badge variant="outline" className={statusInfo.className}>
+                    {statusInfo.label}
+                  </Badge>
+                </div>
               </div>
             </div>
+            {/* </div> */}
           </div>
 
           {/* Overview Cards */}
@@ -830,10 +841,12 @@ export default function ProjectDetailPage(props: {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="cursor-pointer">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteProject}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 cursor-pointer"
             >
               Delete Project
             </AlertDialogAction>

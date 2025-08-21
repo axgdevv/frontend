@@ -4,7 +4,7 @@
 import { Button } from "@/components/ui/button";
 
 // lucide-react:
-import { CheckCircle2, Loader2Icon, Trash2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Loader2Icon, Trash2 } from "lucide-react";
 
 // react:
 import { use, useEffect, useState } from "react";
@@ -19,6 +19,16 @@ import { useRouter } from "next/navigation";
 import BaseModal from "@/components/base/BaseModal";
 import { ChecklistResponse } from "@/types/checklist";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function ChecklistPage(props: {
   params: Promise<{ projectId: string; checklistId: string }>;
@@ -27,7 +37,7 @@ export default function ChecklistPage(props: {
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
   const [checklist, setChecklist] = useState<ChecklistResponse | null>(null);
   const router = useRouter();
-  const user = useAuth();
+  const { user } = useAuth();
 
   const { checklistId, projectId } = use(props.params);
 
@@ -67,10 +77,10 @@ export default function ChecklistPage(props: {
   }
 
   useEffect(() => {
-    if (checklistId) {
+    if (checklistId && user?.uid) {
       fetchChecklist();
     }
-  }, [checklistId]);
+  }, [checklistId, user]);
 
   // Delete Checklist:
   async function handleDelete() {
@@ -115,13 +125,20 @@ export default function ChecklistPage(props: {
             <Trash2 color="#c70000" strokeWidth={1} />
           </Button>
         </div>
-
         {/* Editable Project Info */}
-        <section>
+        <section className="flex items-center space-x-4">
+          <Button
+            variant="ghost"
+            className="mb-4 flex items-center gap-2 text-gray-700 cursor-pointer border"
+            onClick={() => {
+              router.back();
+            }}
+          >
+            <ArrowLeft size={18} />
+          </Button>
           <h2 className="text-2xl font-semibold mb-4">{checklist.title}</h2>
           <div className="flex items-end space-x-4 max-w-xl"></div>
         </section>
-
         {/* Checklist Items (Read-only) */}
         <section>
           <h2 className="text-2xl font-semibold mb-4">Checklist Items</h2>
@@ -140,7 +157,6 @@ export default function ChecklistPage(props: {
             ))}
           </div>
         </section>
-
         {/* Summary of Key Concerns (Read-only) */}
         <section>
           <h2 className="text-2xl font-semibold mb-4">
@@ -153,7 +169,6 @@ export default function ChecklistPage(props: {
             className="resize-none bg-gray-50 text-gray-700"
           />
         </section>
-
         {/* Suggested Next Steps (Read-only) */}
         <section>
           <h2 className="text-2xl font-semibold mb-6">Suggested Next Steps</h2>
@@ -170,14 +185,66 @@ export default function ChecklistPage(props: {
           </div>
         </section>
 
-        <BaseModal
-          open={showDeleteModal}
-          type="delete"
-          title="Delete Checklist"
-          message="This action cannot be undone. Do you want to proceed?"
-          onConfirm={handleDelete}
-          onCancel={() => setShowDeleteModal(false)}
-        />
+        <AlertDialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the
+                checklist.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                className="cursor-pointer"
+                disabled={isLoading}
+              >
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={async () => {
+                  setIsLoading(true);
+                  try {
+                    await handleDelete();
+                    setShowDeleteModal(false);
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
+                disabled={isLoading}
+                className="bg-red-600 hover:bg-red-700 flex items-center justify-center cursor-pointer"
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <svg
+                      className="animate-spin h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      ></path>
+                    </svg>
+                    Deleting...
+                  </div>
+                ) : (
+                  "Delete Checklist"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </ProtectedRoute>
   );

@@ -41,7 +41,6 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({
   onBack,
   onCreateProject,
 }) => {
-  // Separate state for each input
   const [projectName, setProjectName] = useState("");
   const [clientName, setClientName] = useState("");
   const [projectType, setProjectType] = useState("");
@@ -64,8 +63,8 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({
     } else {
       setCities([]);
     }
-    setStateValue(isoCode); // store short code
-    setCityValue(""); // reset city
+    setStateValue(isoCode);
+    setCityValue("");
   };
 
   const handleCityChange = (cityName: string) => {
