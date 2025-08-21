@@ -16,7 +16,7 @@ import { deleteChecklistById, fetchChecklistById } from "@/api/checklists";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
-import BaseModal from "@/components/base/BaseModal";
+
 import { ChecklistResponse } from "@/types/checklist";
 import { useAuth } from "@/contexts/AuthContext";
 import {
